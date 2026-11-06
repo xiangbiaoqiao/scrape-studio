@@ -1,0 +1,89 @@
+name: scrapestudio
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: scrapestudio
+      POSTGRES_USER: scrapestudio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scrapestudio}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U scrapestudio -d scrapestudio']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build:
+      context: ./worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      WORKER_TOKEN: ${WORKER_TOKEN:-dev-worker-token}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8088}
+      SCREENSHOT_DIR: /app/.data/screenshots
+      SESSION_TTL_MS: 600000
+    volumes:
+      - worker-data:/app/.data
+    shm_size: '1gb'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8787/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/scrapestudio
+      DATABASE_USER: scrapestudio
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-scrapestudio}
+      WORKER_URL: http://worker:8787
+      WORKER_TOKEN: ${WORKER_TOKEN:-dev-worker-token}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-please-32-chars-minimum}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8088}
+      SCRAPESTUDIO_DEMO_ENABLED: ${DEMO_ENABLED:-true}
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8080/actuator/health']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  web:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    ports:
+      - '${WEB_PORT:-8088}:80'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost/healthz']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  worker-data:

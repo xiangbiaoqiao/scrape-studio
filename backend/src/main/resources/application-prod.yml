@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/scrapestudio}
+    username: ${DATABASE_USER:scrapestudio}
+    password: ${DATABASE_PASSWORD:scrapestudio}
+  h2:
+    console:
+      enabled: false
+
+server:
+  port: ${PORT:8080}
+
+scrapestudio:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}

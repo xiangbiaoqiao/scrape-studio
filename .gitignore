@@ -1,0 +1,25 @@
+# Build output
+target/
+dist/
+node_modules/
+*.class
+
+# Runtime data
+data/
+worker/.data/
+*.log
+
+# Env / secrets
+.env
+.env.local
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Screenshots generated during local testing
+docs/screenshots/local-*
