@@ -25,8 +25,8 @@ public class RunScheduler {
 
     @Scheduled(fixedDelay = 30_000, initialDelay = 15_000)
     public void dispatchDueProjects() {
-        List<Project> due = projectRepository.findByScheduleEnabledTrueAndNextRunAtBefore(Instant.now());
-        for (Project project : due) {
+        List<Project> dueProjectList = projectRepository.findByScheduleEnabledTrueAndNextRunAtBefore(Instant.now());
+        for (Project project : dueProjectList) {
             try {
                 runService.triggerScheduled(project.getId());
             } catch (Exception exception) {

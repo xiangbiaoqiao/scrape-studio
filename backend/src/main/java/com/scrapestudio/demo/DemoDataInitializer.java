@@ -10,6 +10,9 @@ import com.scrapestudio.run.Run;
 import com.scrapestudio.run.RunRepository;
 import com.scrapestudio.user.User;
 import com.scrapestudio.user.UserRepository;
+import com.scrapestudio.worker.dto.DiagnosisReport;
+import com.scrapestudio.worker.dto.DiagnosisSignal;
+import com.scrapestudio.worker.dto.TlsInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -34,8 +37,8 @@ public class DemoDataInitializer implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataInitializer.class);
 
-    public static final String DEMO_EMAIL = "demo@scrapestudio.dev";
-    public static final String DEMO_PASSWORD = "demo1234";
+    private static final String DEMO_EMAIL;
+    private static final String DEMO_PASSWORD;
 
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
@@ -140,7 +143,7 @@ public class DemoDataInitializer implements ApplicationRunner {
     }
 
     private void seedRuns(Project books, Project quotes) {
-        List<Map<String, String>> bookRows = List.of(
+        List<Map<String, String>> bookRowList = List.of(
                 book("A Light in the Attic", "£51.77", "star-rating Three", "In stock (22 available)",
                         "catalogue/a-light-in-the-attic_1000/index.html"),
                 book("Tipping the Velvet", "£53.74", "star-rating One", "In stock (20 available)",
@@ -153,7 +156,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                         "In stock (20 available)", "catalogue/sapiens-a-brief-history-of-humankind_996/index.html")
         );
 
-        List<Map<String, String>> quoteRows = List.of(
+        List<Map<String, String>> quoteRowList = List.of(
                 Map.of(
                         "quote", "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”",
                         "author", "Albert Einstein",
@@ -172,19 +175,19 @@ public class DemoDataInitializer implements ApplicationRunner {
         );
 
         seedRun(books, Run.RunStatus.SUCCESS, Instant.now().minus(2, ChronoUnit.HOURS),
-                1840, bookRows, null, null);
+                1840, bookRowList, null, null);
         seedRun(books, Run.RunStatus.BLOCKED, Instant.now().minus(2, ChronoUnit.DAYS),
                 9120, List.of(), "Cloudflare challenge detected (HTTP 403 + cf-mitigated header)",
                 diagnosis());
         seedRun(books, Run.RunStatus.SUCCESS, Instant.now().minus(4, ChronoUnit.DAYS),
-                2130, bookRows, null, null);
+                2130, bookRowList, null, null);
         seedRun(books, Run.RunStatus.SUCCESS, Instant.now().minus(9, ChronoUnit.DAYS),
-                1970, bookRows, null, null);
+                1970, bookRowList, null, null);
 
         seedRun(quotes, Run.RunStatus.SUCCESS, Instant.now().minus(6, ChronoUnit.HOURS),
-                1210, quoteRows, null, null);
+                1210, quoteRowList, null, null);
         seedRun(quotes, Run.RunStatus.SUCCESS, Instant.now().minus(3, ChronoUnit.DAYS),
-                1450, quoteRows, null, null);
+                1450, quoteRowList, null, null);
     }
 
     private void seedRun(
@@ -192,9 +195,9 @@ public class DemoDataInitializer implements ApplicationRunner {
             Run.RunStatus status,
             Instant startedAt,
             long durationMs,
-            List<Map<String, String>> rows,
+            List<Map<String, String>> rowList,
             String errorMessage,
-            Map<String, Object> diagnosis
+            DiagnosisReport diagnosisReport
     ) {
         Run run = new Run();
         run.setProject(project);
@@ -203,57 +206,77 @@ public class DemoDataInitializer implements ApplicationRunner {
         run.setStartedAt(startedAt);
         run.setFinishedAt(startedAt.plusMillis(durationMs));
         run.setDurationMs(durationMs);
-        run.setItemCount(rows.size());
+        run.setItemCount(rowList.size());
         run.setErrorMessage(errorMessage);
         try {
-            run.setResultJson(objectMapper.writeValueAsString(rows));
-            if (diagnosis != null) {
-                run.setDiagnosisJson(objectMapper.writeValueAsString(diagnosis));
+            run.setResultJson(objectMapper.writeValueAsString(rowList));
+            if (diagnosisReport != null) {
+                run.setDiagnosisJson(objectMapper.writeValueAsString(diagnosisReport));
             }
         } catch (Exception exception) {
+            log.warn("Could not seed run payload for project {}", project.getId(), exception);
             run.setResultJson("[]");
         }
         runRepository.save(run);
     }
 
     private Map<String, String> book(String title, String price, String rating, String availability, String link) {
-        Map<String, String> row = new LinkedHashMap<>();
-        row.put("title", title);
-        row.put("price", price);
-        row.put("rating", rating);
-        row.put("availability", availability);
-        row.put("link", link);
-        return row;
+        Map<String, String> rowMap = new LinkedHashMap<>();
+        rowMap.put("title", title);
+        rowMap.put("price", price);
+        rowMap.put("rating", rating);
+        rowMap.put("availability", availability);
+        rowMap.put("link", link);
+        return rowMap;
     }
 
-    private Map<String, Object> diagnosis() {
-        return Map.of(
-                "verdict", "low-risk",
-                "riskScore", 34,
-                "target", "https://books.toscrape.com/",
-                "summary", "TLS and HTTP/2 fingerprints look like a normal browser, but the page was served from a CDN challenge during this run.",
-                "signals", List.of(
-                        Map.of(
-                                "name", "TLS fingerprint",
-                                "status", "pass",
-                                "detail", "JA4 matches a current Chrome build."
+    private DiagnosisReport diagnosis() {
+        return new DiagnosisReport(
+                "https://books.toscrape.com/",
+                "https://books.toscrape.com/",
+                Instant.now().minus(2, ChronoUnit.DAYS).toString(),
+                1840L,
+                403,
+                "low-risk",
+                34,
+                "TLS and HTTP/2 fingerprints look like a normal browser, but the page was served from a CDN challenge during this run.",
+                "cloudflare",
+                new TlsInfo(
+                        "TLSv1.3",
+                        "TLS_AES_128_GCM_SHA256",
+                        "h2",
+                        true,
+                        "Google Trust Services",
+                        null,
+                        null
+                ),
+                List.of(
+                        new DiagnosisSignal(
+                                "TLS fingerprint",
+                                "pass",
+                                "JA4 matches a current Chrome build."
                         ),
-                        Map.of(
-                                "name", "HTTP/2 settings",
-                                "status", "pass",
-                                "detail", "Frame settings are consistent with Chromium."
+                        new DiagnosisSignal(
+                                "HTTP/2 settings",
+                                "pass",
+                                "Frame settings are consistent with Chromium."
                         ),
-                        Map.of(
-                                "name", "CDN challenge",
-                                "status", "warn",
-                                "detail", "Response included cf-mitigated: challenge. Retry with a real browser context."
+                        new DiagnosisSignal(
+                                "CDN challenge",
+                                "warn",
+                                "Response included cf-mitigated: challenge. Retry with a real browser context."
                         )
                 ),
-                "recommendations", List.of(
+                List.of(
                         "Use the Playwright rendering worker instead of plain HTTP requests.",
                         "Keep a realistic browser profile and reuse a warm session.",
                         "Slow down bursts and respect the site's crawling policy."
                 )
         );
+    }
+
+    static {
+        DEMO_EMAIL = "demo@scrapestudio.dev";
+        DEMO_PASSWORD = "demo1234";
     }
 }

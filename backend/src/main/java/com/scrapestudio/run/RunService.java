@@ -11,6 +11,7 @@ import com.scrapestudio.run.dto.RunDetail;
 import com.scrapestudio.run.dto.RunSummary;
 import com.scrapestudio.user.User;
 import com.scrapestudio.worker.WorkerClient;
+import com.scrapestudio.worker.dto.DiagnosisReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -138,7 +139,7 @@ public class RunService {
     }
 
     @Transactional
-    public void saveDiagnosis(Long runId, Map<String, Object> report) {
+    public void saveDiagnosis(Long runId, DiagnosisReport report) {
         Run run = runRepository.findById(runId)
                 .orElseThrow(() -> ApiException.notFound("Run not found"));
         try {
@@ -163,6 +164,7 @@ public class RunService {
             return objectMapper.readValue(run.getResultJson(), new TypeReference<>() {
             });
         } catch (Exception exception) {
+            log.warn("Could not parse stored result JSON for run {}", run.getId(), exception);
             return List.of();
         }
     }
@@ -227,19 +229,19 @@ public class RunService {
                 run.getItemCount(),
                 run.getErrorMessage(),
                 rows(run),
-                parseDiagnosis(run.getDiagnosisJson()),
+                parseDiagnosis(run.getDiagnosisJson(), run.getId()),
                 run.getScreenshotUrl()
         );
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseDiagnosis(String json) {
+    private DiagnosisReport parseDiagnosis(String json, Long runId) {
         if (json == null || json.isBlank()) {
             return null;
         }
         try {
-            return objectMapper.readValue(json, Map.class);
+            return objectMapper.readValue(json, DiagnosisReport.class);
         } catch (Exception exception) {
+            log.warn("Could not parse stored diagnosis JSON for run {}", runId, exception);
             return null;
         }
     }
@@ -251,6 +253,7 @@ public class RunService {
         try {
             return Run.RunStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
+            log.debug("Invalid run status filter: {}", status);
             throw ApiException.badRequest("status must be RUNNING, SUCCESS, FAILED or BLOCKED");
         }
     }

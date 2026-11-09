@@ -14,6 +14,7 @@ import com.scrapestudio.project.dto.UpdateProjectRequest;
 import com.scrapestudio.common.PageResponse;
 import com.scrapestudio.user.User;
 import com.scrapestudio.worker.WorkerClient;
+import com.scrapestudio.worker.dto.DiagnosisReport;
 import com.scrapestudio.worker.dto.PickResponse;
 import com.scrapestudio.worker.dto.PreviewRequest;
 import com.scrapestudio.worker.dto.PreviewResponse;
@@ -33,7 +34,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -173,7 +173,7 @@ public class ProjectController {
                 ? request.itemSelectorType()
                 : spec.itemSelectorType().name();
 
-        List<PreviewRequest.PreviewField> fields =
+        List<PreviewRequest.PreviewField> fieldList =
                 request != null && request.fields() != null && !request.fields().isEmpty()
                         ? request.fields()
                         : spec.fields().stream()
@@ -194,13 +194,13 @@ public class ProjectController {
                 url,
                 itemSelector,
                 itemSelectorType,
-                fields,
+                fieldList,
                 limit
         ));
     }
 
     @PostMapping("/{id}/diagnose")
-    public Map<String, Object> diagnose(
+    public DiagnosisReport diagnose(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
             @RequestBody(required = false) RenderRequest request

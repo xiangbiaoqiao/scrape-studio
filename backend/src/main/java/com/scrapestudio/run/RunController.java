@@ -6,6 +6,7 @@ import com.scrapestudio.run.dto.RunDetail;
 import com.scrapestudio.run.dto.RunSummary;
 import com.scrapestudio.user.User;
 import com.scrapestudio.worker.WorkerClient;
+import com.scrapestudio.worker.dto.DiagnosisReport;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,8 +33,7 @@ import java.util.Set;
 @RequestMapping("/api")
 public class RunController {
 
-    private static final DateTimeFormatter FILE_STAMP =
-            DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
+    private static final DateTimeFormatter FILE_STAMP;
 
     private final RunService runService;
     private final WorkerClient workerClient;
@@ -88,11 +88,11 @@ public class RunController {
     }
 
     @PostMapping("/runs/{id}/diagnose")
-    public Map<String, Object> diagnose(@AuthenticationPrincipal User user, @PathVariable Long id) {
+    public DiagnosisReport diagnose(@AuthenticationPrincipal User user, @PathVariable Long id) {
         Run run = runService.requireRun(user, id);
-        Map<String, Object> report = workerClient.diagnose(run.getProject().getUrl());
-        runService.saveDiagnosis(run.getId(), report);
-        return report;
+        DiagnosisReport diagnosisReport = workerClient.diagnose(run.getProject().getUrl());
+        runService.saveDiagnosis(run.getId(), diagnosisReport);
+        return diagnosisReport;
     }
 
     @GetMapping("/runs/{id}/export")
@@ -102,7 +102,7 @@ public class RunController {
             @RequestParam(defaultValue = "csv") String format
     ) {
         Run run = runService.requireRun(user, id);
-        List<Map<String, Object>> rows = runService.rows(run);
+        List<Map<String, Object>> rowList = runService.rows(run);
         String baseName = sanitize(run.getProject().getName())
                 + "-" + run.getStatus().name().toLowerCase()
                 + "-" + FILE_STAMP.format(run.getStartedAt());
@@ -117,7 +117,7 @@ public class RunController {
             throw new IllegalArgumentException("format must be csv or json");
         }
 
-        String csv = toCsv(rows);
+        String csv = toCsv(rowList);
         return attachment(baseName + ".csv", new MediaType("text", "csv", StandardCharsets.UTF_8), csv);
     }
 
@@ -130,10 +130,10 @@ public class RunController {
                 .body(bytes);
     }
 
-    private String toCsv(List<Map<String, Object>> rows) {
+    private String toCsv(List<Map<String, Object>> rowList) {
         Set<String> columns = new LinkedHashSet<>();
-        for (Map<String, Object> row : rows) {
-            columns.addAll(row.keySet());
+        for (Map<String, Object> rowMap : rowList) {
+            columns.addAll(rowMap.keySet());
         }
         if (columns.isEmpty()) {
             return "";
@@ -142,9 +142,9 @@ public class RunController {
         StringBuilder csv = new StringBuilder("\uFEFF");
         csv.append(String.join(",", columns.stream().map(this::escape).toList())).append("\r\n");
 
-        for (Map<String, Object> row : rows) {
+        for (Map<String, Object> rowMap : rowList) {
             csv.append(columns.stream()
-                    .map(column -> escape(cell(row.get(column))))
+                    .map(column -> escape(cell(rowMap.get(column))))
                     .reduce((left, right) -> left + "," + right)
                     .orElse(""));
             csv.append("\r\n");
@@ -178,5 +178,9 @@ public class RunController {
         String cleaned = value == null ? "export" : value.trim().replaceAll("[^\\p{L}\\p{N}._-]+", "-");
         cleaned = cleaned.replaceAll("^-+|-+$", "");
         return cleaned.isEmpty() ? "export" : cleaned;
+    }
+
+    static {
+        FILE_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
     }
 }

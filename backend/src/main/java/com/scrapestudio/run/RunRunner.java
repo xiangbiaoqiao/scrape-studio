@@ -52,9 +52,9 @@ public class RunRunner {
         long started = System.currentTimeMillis();
         try {
             Project project = run.getProject();
-            List<Field> fields = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(project.getId());
+            List<Field> fieldList = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(project.getId());
 
-            List<PreviewRequest.PreviewField> fieldSpecs = fields.stream()
+            List<PreviewRequest.PreviewField> fieldSpecList = fieldList.stream()
                     .map(field -> new PreviewRequest.PreviewField(
                             field.getName(),
                             field.getSelector(),
@@ -68,7 +68,7 @@ public class RunRunner {
                     project.getUrl(),
                     project.getItemSelector(),
                     project.getItemSelectorType().name(),
-                    fieldSpecs,
+                    fieldSpecList,
                     200
             ));
 

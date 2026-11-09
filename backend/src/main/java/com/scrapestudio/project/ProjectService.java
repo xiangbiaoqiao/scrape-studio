@@ -86,8 +86,8 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public ProjectDetail get(User owner, Long id) {
         Project project = requireProject(owner, id);
-        List<Field> fields = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(id);
-        return toDetail(project, fields);
+        List<Field> fieldList = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(id);
+        return toDetail(project, fieldList);
     }
 
     @Transactional
@@ -122,8 +122,8 @@ public class ProjectService {
         }
 
         project = projectRepository.saveAndFlush(project);
-        List<Field> fields = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(id);
-        return toDetail(project, fields);
+        List<Field> fieldList = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(id);
+        return toDetail(project, fieldList);
     }
 
     @Transactional
@@ -187,7 +187,7 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public ProjectRunSpec loadRunSpec(User owner, Long projectId) {
         Project project = requireProject(owner, projectId);
-        List<Field> fields = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(projectId);
+        List<Field> fieldList = fieldRepository.findByProjectIdOrderByOrderIndexAscIdAsc(projectId);
 
         return new ProjectRunSpec(
                 project.getId(),
@@ -195,7 +195,7 @@ public class ProjectService {
                 project.getUrl(),
                 project.getItemSelector(),
                 project.getItemSelectorType(),
-                fields.stream()
+                fieldList.stream()
                         .map(field -> new ProjectRunSpec.FieldSpec(
                                 field.getName(),
                                 field.getSelector(),
@@ -243,7 +243,7 @@ public class ProjectService {
         );
     }
 
-    private ProjectDetail toDetail(Project project, List<Field> fields) {
+    private ProjectDetail toDetail(Project project, List<Field> fieldList) {
         return new ProjectDetail(
                 project.getId(),
                 project.getName(),
@@ -255,7 +255,7 @@ public class ProjectService {
                 project.getIntervalMinutes(),
                 project.getLastRunAt(),
                 project.getNextRunAt(),
-                fields.stream().map(FieldDto::from).toList(),
+                fieldList.stream().map(FieldDto::from).toList(),
                 project.getCreatedAt(),
                 project.getUpdatedAt()
         );

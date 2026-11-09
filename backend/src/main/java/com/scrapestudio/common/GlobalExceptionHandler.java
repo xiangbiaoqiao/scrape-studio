@@ -36,11 +36,11 @@ public class GlobalExceptionHandler {
         );
         detail.setTitle("Bad Request");
 
-        Map<String, String> errors = new LinkedHashMap<>();
+        Map<String, String> errorMap = new LinkedHashMap<>();
         for (FieldError error : exception.getBindingResult().getFieldErrors()) {
-            errors.putIfAbsent(error.getField(), error.getDefaultMessage());
+            errorMap.putIfAbsent(error.getField(), error.getDefaultMessage());
         }
-        detail.setProperty("errors", errors);
+        detail.setProperty("errors", errorMap);
         return detail;
     }
 

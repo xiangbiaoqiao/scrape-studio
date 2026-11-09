@@ -1,16 +1,16 @@
 package com.scrapestudio.worker;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scrapestudio.common.ApiException;
 import com.scrapestudio.config.ScrapeStudioProperties;
+import com.scrapestudio.worker.dto.DiagnosisReport;
 import com.scrapestudio.worker.dto.PickResponse;
 import com.scrapestudio.worker.dto.PreviewRequest;
 import com.scrapestudio.worker.dto.PreviewResponse;
 import com.scrapestudio.worker.dto.RenderResponse;
+import com.scrapestudio.worker.dto.WorkerError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -53,9 +53,8 @@ public class WorkerClient {
         return post("/api/preview", request, PreviewResponse.class);
     }
 
-    public Map<String, Object> diagnose(String url) {
-        return post("/api/diagnose", Map.of("url", url), new ParameterizedTypeReference<>() {
-        });
+    public DiagnosisReport diagnose(String url) {
+        return post("/api/diagnose", Map.of("url", url), DiagnosisReport.class);
     }
 
     public boolean isHealthy() {
@@ -84,34 +83,15 @@ public class WorkerClient {
         }
     }
 
-    private <T> T post(String path, Object body, ParameterizedTypeReference<T> responseType) {
-        try {
-            return client.post()
-                    .uri(path)
-                    .body(body)
-                    .retrieve()
-                    .body(responseType);
-        } catch (RestClientResponseException exception) {
-            throw ApiException.badGateway(workerMessage(exception));
-        } catch (Exception exception) {
-            log.warn("Rendering worker unavailable: {}", exception.getMessage());
-            throw ApiException.badGateway(
-                    "Rendering service is unavailable. Start it with: cd worker && npm run dev"
-            );
-        }
-    }
-
     private String workerMessage(RestClientResponseException exception) {
         String body = exception.getResponseBodyAsString();
         try {
-            Map<String, Object> payload = objectMapper.readValue(body, new TypeReference<>() {
-            });
-            Object message = payload.get("error");
-            if (message != null) {
-                return "Rendering service: " + message;
+            WorkerError payload = objectMapper.readValue(body, WorkerError.class);
+            if (payload.error() != null) {
+                return "Rendering service: " + payload.error();
             }
-        } catch (Exception ignored) {
-            // Fall through to the raw body.
+        } catch (Exception parseException) {
+            log.debug("Worker error response was not a JSON envelope: {}", parseException.getMessage());
         }
         String message = body == null ? "" : body.strip();
         if (message.length() > 300) {

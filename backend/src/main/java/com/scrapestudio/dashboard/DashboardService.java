@@ -51,35 +51,35 @@ public class DashboardService {
                 ? 0
                 : Math.round((successCount * 1000.0) / runCount) / 10.0;
 
-        List<RunSummary> recentRuns = runRepository
+        List<RunSummary> recentRunList = runRepository
                 .findTop8ByProjectOwnerIdOrderByStartedAtDesc(owner.getId())
                 .stream()
                 .map(this::toSummary)
                 .toList();
 
         Instant windowStart = LocalDate.now(zone).minusDays(13).atStartOfDay(zone).toInstant();
-        List<Run> windowRuns = runRepository.findByProjectOwnerIdAndStartedAtAfter(owner.getId(), windowStart);
+        List<Run> windowRunList = runRepository.findByProjectOwnerIdAndStartedAtAfter(owner.getId(), windowStart);
 
-        Map<LocalDate, long[]> buckets = new LinkedHashMap<>();
+        Map<LocalDate, long[]> bucketMap = new LinkedHashMap<>();
         for (int offset = 13; offset >= 0; offset--) {
-            buckets.put(LocalDate.now(zone).minusDays(offset), new long[]{0, 0});
+            bucketMap.put(LocalDate.now(zone).minusDays(offset), new long[]{0, 0});
         }
-        for (Run run : windowRuns) {
+        for (Run run : windowRunList) {
             LocalDate date = run.getStartedAt().atZone(zone).toLocalDate();
-            long[] bucket = buckets.get(date);
-            if (bucket != null) {
-                bucket[0]++;
+            long[] bucketArr = bucketMap.get(date);
+            if (bucketArr != null) {
+                bucketArr[0]++;
                 if (run.getStatus() == Run.RunStatus.FAILED || run.getStatus() == Run.RunStatus.BLOCKED) {
-                    bucket[1]++;
+                    bucketArr[1]++;
                 }
             }
         }
 
-        List<DashboardSummary.DailyActivity> activity = buckets.entrySet().stream()
-                .map(entry -> new DashboardSummary.DailyActivity(
-                        entry.getKey().toString(),
-                        entry.getValue()[0],
-                        entry.getValue()[1]
+        List<DashboardSummary.DailyActivity> activityList = bucketMap.entrySet().stream()
+                .map(bucketEntry -> new DashboardSummary.DailyActivity(
+                        bucketEntry.getKey().toString(),
+                        bucketEntry.getValue()[0],
+                        bucketEntry.getValue()[1]
                 ))
                 .toList();
 
@@ -93,8 +93,8 @@ public class DashboardService {
                 successRate,
                 itemsCollected,
                 workerClient.isHealthy(),
-                recentRuns,
-                activity,
+                recentRunList,
+                activityList,
                 projectService.recent(owner, 4)
         );
     }

@@ -1,5 +1,7 @@
 package com.scrapestudio.run.dto;
 
+import com.scrapestudio.worker.dto.DiagnosisReport;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +18,7 @@ public record RunDetail(
         int itemCount,
         String errorMessage,
         List<Map<String, Object>> rows,
-        Map<String, Object> diagnosis,
+        DiagnosisReport diagnosis,
         String screenshotUrl
 ) {
 }
