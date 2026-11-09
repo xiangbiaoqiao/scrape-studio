@@ -1,8 +1,8 @@
 # Launch playbook
 
-A practical checklist for taking ScrapeStudio from a local repository to a credible public open-source project. It assumes the repository is `xiangbiaoqiao/scrape-studio`; adjust the slug if needed.
+A practical checklist for taking ScrapeStudio from a local repository to a credible public open-source project. The repository is live at `https://github.com/xiangbiaoqiao/scrape-studio`; adjust the slug if you fork it.
 
-No step in this document has been executed against GitHub yet. Do not push or publish without the owner's explicit approval.
+Published on 2026-11-09. Everything below is kept as the reproducible playbook and launch checklist.
 
 ## 1. What is already done
 
@@ -20,7 +20,12 @@ No step in this document has been executed against GitHub yet. Do not push or pu
 | Dockerfiles, Nginx config, Compose, `.env.example` | ✅ |
 | GitHub Actions CI | ✅ |
 | README, Chinese README, architecture, launch, resume docs | ✅ |
-| Git repository initialized | ❌ |
+| Git repository initialized | ✅ |
+| Published to GitHub (`main`) | ✅ https://github.com/xiangbiaoqiao/scrape-studio |
+| GitHub Actions CI green | ✅ |
+| Release `v0.1.0` | ✅ |
+| Topics added | ✅ 10 topics |
+| Social preview image | ⏳ upload `docs/social-preview.png` in Settings (no API yet) |
 | Docker Compose actually run locally | ❌ (Docker not installed on the build machine) |
 | Public demo deployed | ❌ |
 
@@ -161,7 +166,7 @@ git push -u origin main
 | Description | `Visual web scraping workbench with a built-in anti-bot doctor. Spring Boot + Vue 3 + Playwright.` |
 | Website | Public demo URL once deployed (optional) |
 | Topics | `web-scraping`, `playwright`, `spring-boot`, `vue3`, `typescript`, `java`, `visual-editor`, `anti-bot`, `selenium-alternative`, `data-extraction`, `self-hosted`, `scraper` |
-| Social preview | Upload `docs/screenshots/dashboard.png` (1280×640 crop works best) |
+| Social preview | Upload `docs/social-preview.png` (1280×640, already committed) — GitHub still has no API for this |
 | Features | Enable Issues and Discussions |
 | Releases | Create `v0.1.0` after CI is green |
 
@@ -228,6 +233,8 @@ Add a visible banner or README note that the demo is reset periodically and that
 ## 5. Launch posts
 
 Keep the tone factual: what it does, how it is built, what is hard, what is missing. Do not ask for stars, do not use fake accounts, and disclose that you are the author.
+
+Copy-paste-ready versions with posting order and submit links: [`docs/launch-posts.md`](launch-posts.md).
 
 ### Show HN
 

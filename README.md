@@ -16,6 +16,8 @@ Click a page, define fields, preview real data, generate production code, schedu
 
 [Features](#-features) · [Quick start](#-quick-start) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Docs](#-documentation)
 
+<sub>If this saves you time, a ⭐ helps.</sub>
+
 </div>
 
 ![ScrapeStudio dashboard](docs/screenshots/dashboard.png)

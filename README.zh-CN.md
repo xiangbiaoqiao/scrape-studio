@@ -16,6 +16,8 @@
 [![Playwright](https://img.shields.io/badge/Playwright-1.65-2EAD33)](https://playwright.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<sub>如果这个项目帮你省了时间，点个 ⭐ 就是最好的支持。</sub>
+
 </div>
 
 ![ScrapeStudio 仪表盘](docs/screenshots/dashboard.png)
